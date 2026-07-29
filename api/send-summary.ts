@@ -1,66 +1,96 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
+
 const ses = new SESClient({
   region: process.env.AWS_REGION,
+
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
+
 });
+
+
 
 export default async function handler(req: any, res: any) {
 
+
   if (req.method !== "POST") {
+
     return res.status(405).json({
-      success: false,
-      message: "Método no permitido",
+      message: "Método no permitido"
     });
+
   }
+
 
 
   try {
 
+
+    console.log({
+      region: process.env.AWS_REGION,
+      accessKey: process.env.AWS_ACCESS_KEY_ID?.substring(0, 5),
+      sender: process.env.AWS_SES_SENDER_EMAIL
+    });
+
+
+
     const { email, tasks } = req.body;
 
 
+
     if (!email) {
+
       return res.status(400).json({
-        success: false,
-        message: "Email requerido",
+        message: "Email requerido"
       });
+
     }
 
 
-    const taskList = Array.isArray(tasks) && tasks.length > 0
-      ? tasks
-        .map(
-          (task: any) =>
-            `- ${task.title} (${task.completed ? "Completada" : "Pendiente"})`
-        )
-        .join("\n")
-      : "No hay tareas registradas";
+
+    const taskList = tasks
+      .map(
+        (task: any) =>
+          `- ${task.title} (${task.completed ? "Completada" : "Pendiente"})`
+      )
+      .join("\n");
 
 
-    const params = {
+
+
+    const command = new SendEmailCommand({
+
 
       Source: process.env.AWS_SES_SENDER_EMAIL,
 
+
       Destination: {
+
         ToAddresses: [
           email
-        ],
+        ]
+
       },
+
 
       Message: {
 
+
         Subject: {
-          Data: "Resumen de tareas",
-          Charset: "UTF-8",
+
+          Data: "Resumen de tareas - Gestor Estratégico"
+
         },
+
 
         Body: {
 
+
           Text: {
+
             Data:
               `Hola 👋
 
@@ -68,57 +98,60 @@ Este es tu resumen de tareas:
 
 ${taskList}
 
+
 Saludos.
-`,
-            Charset: "UTF-8",
-          },
+Gestor Estratégico`
 
-        },
-
-      },
-
-    };
+          }
 
 
-    await ses.send(
-      new SendEmailCommand(params)
-    );
+        }
 
 
-    console.log("Correo enviado a:", email);
+      }
+
+
+    });
+
+
+
+
+    const response = await ses.send(command);
+
+
+
+    console.log("EMAIL ENVIADO:", response.MessageId);
+
 
 
     return res.status(200).json({
 
       success: true,
 
-      message:
-        "Resumen enviado correctamente",
+      message: "Correo enviado correctamente"
 
     });
+
 
 
   } catch (error: any) {
 
 
-    console.error(
-      "ERROR AWS SES:",
-      error
-    );
+
+    console.error("ERROR AWS SES:", error);
+
 
 
     return res.status(500).json({
 
       success: false,
 
-      message:
-        "Error enviando resumen",
-
-      error:
-        error.message,
+      message: error.message
 
     });
 
+
   }
+
 
 }
