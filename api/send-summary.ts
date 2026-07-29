@@ -1,25 +1,74 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 
+// ===============================
+// VARIABLES DE ENTORNO
+// ===============================
+
+const {
+  AWS_REGION,
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_SES_SENDER_EMAIL,
+} = process.env;
+
+
+
+// ===============================
+// VALIDACIÓN AWS
+// ===============================
+
+if (
+  !AWS_REGION ||
+  !AWS_ACCESS_KEY_ID ||
+  !AWS_SECRET_ACCESS_KEY ||
+  !AWS_SES_SENDER_EMAIL
+) {
+  throw new Error("Faltan variables de AWS en Vercel");
+}
+
+
+
+// ===============================
+// CLIENTE SES
+// ===============================
+
 const ses = new SESClient({
-  region: process.env.AWS_REGION,
+
+  region: AWS_REGION,
 
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+
+    accessKeyId: AWS_ACCESS_KEY_ID!,
+
+    secretAccessKey: AWS_SECRET_ACCESS_KEY!,
+
   },
 
 });
 
 
 
-export default async function handler(req: any, res: any) {
+// ===============================
+// API HANDLER
+// ===============================
 
+export default async function handler(
+  req: any,
+  res: any
+) {
+
+
+  // Solo POST
 
   if (req.method !== "POST") {
 
     return res.status(405).json({
+
+      success: false,
+
       message: "Método no permitido"
+
     });
 
   }
@@ -29,51 +78,76 @@ export default async function handler(req: any, res: any) {
   try {
 
 
+    // Debug Vercel
+
     console.log({
-      region: process.env.AWS_REGION,
-      accessKey: process.env.AWS_ACCESS_KEY_ID?.substring(0, 5),
-      sender: process.env.AWS_SES_SENDER_EMAIL
+
+      region: AWS_REGION,
+
+      accessKey:
+        AWS_ACCESS_KEY_ID?.substring(0, 5),
+
+      sender:
+        AWS_SES_SENDER_EMAIL
+
     });
 
 
 
-    const { email, tasks } = req.body;
+    const {
+      email,
+      tasks
+    } = req.body;
 
 
 
     if (!email) {
 
       return res.status(400).json({
+
+        success: false,
+
         message: "Email requerido"
+
       });
 
     }
 
 
 
-    const taskList = tasks
+    const taskList = (tasks || [])
+
       .map(
         (task: any) =>
-          `- ${task.title} (${task.completed ? "Completada" : "Pendiente"})`
+
+          `- ${task.title} ${task.completed
+            ? "(Completada)"
+            : "(Pendiente)"
+          }`
+
       )
+
       .join("\n");
+
 
 
 
 
     const command = new SendEmailCommand({
 
-
-      Source: process.env.AWS_SES_SENDER_EMAIL,
+      Source: AWS_SES_SENDER_EMAIL,
 
 
       Destination: {
 
         ToAddresses: [
+
           email
+
         ]
 
       },
+
 
 
       Message: {
@@ -81,7 +155,8 @@ export default async function handler(req: any, res: any) {
 
         Subject: {
 
-          Data: "Resumen de tareas - Gestor Estratégico"
+          Data:
+            "Resumen de tareas - Gestor Estratégico"
 
         },
 
@@ -91,15 +166,18 @@ export default async function handler(req: any, res: any) {
 
           Text: {
 
+
             Data:
+
               `Hola 👋
 
 Este es tu resumen de tareas:
 
-${taskList}
+${taskList || "No tienes tareas registradas."}
 
 
 Saludos.
+
 Gestor Estratégico`
 
           }
@@ -116,11 +194,16 @@ Gestor Estratégico`
 
 
 
-    const response = await ses.send(command);
+
+    const result = await ses.send(command);
 
 
 
-    console.log("EMAIL ENVIADO:", response.MessageId);
+    console.log(
+      "EMAIL ENVIADO:",
+      result.MessageId
+    );
+
 
 
 
@@ -128,9 +211,12 @@ Gestor Estratégico`
 
       success: true,
 
-      message: "Correo enviado correctamente"
+      message:
+        "Correo enviado correctamente"
 
     });
+
+
 
 
 
@@ -138,7 +224,10 @@ Gestor Estratégico`
 
 
 
-    console.error("ERROR AWS SES:", error);
+    console.error(
+      "ERROR AWS SES:",
+      error
+    );
 
 
 
@@ -146,7 +235,8 @@ Gestor Estratégico`
 
       success: false,
 
-      message: error.message
+      message:
+        error.message || "Error enviando correo"
 
     });
 
