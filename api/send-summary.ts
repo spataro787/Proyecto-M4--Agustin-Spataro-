@@ -1,29 +1,19 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 
-console.log("AWS DEBUG", {
-  region: process.env.AWS_REGION,
-  accessKey: process.env.AWS_ACCESS_KEY_ID?.slice(0, 4),
-  accessKeyLength: process.env.AWS_ACCESS_KEY_ID?.length,
-  secretLength: process.env.AWS_SECRET_ACCESS_KEY?.length,
-  sender: process.env.AWS_SES_SENDER_EMAIL,
-});
-// ===============================
+// =====================================
 // VARIABLES DE ENTORNO
-// ===============================
+// =====================================
 
-const {
-  AWS_REGION,
-  AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY,
-  AWS_SES_SENDER_EMAIL,
-} = process.env;
+const AWS_REGION = process.env.AWS_REGION?.trim();
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID?.trim();
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+const AWS_SES_SENDER_EMAIL = process.env.AWS_SES_SENDER_EMAIL?.trim();
 
 
-
-// ===============================
-// VALIDACIÓN AWS
-// ===============================
+// =====================================
+// VALIDACIÓN DE CONFIGURACIÓN
+// =====================================
 
 if (
   !AWS_REGION ||
@@ -31,14 +21,13 @@ if (
   !AWS_SECRET_ACCESS_KEY ||
   !AWS_SES_SENDER_EMAIL
 ) {
-  throw new Error("Faltan variables de AWS en Vercel");
+  throw new Error("Faltan variables de entorno de AWS SES");
 }
 
 
-
-// ===============================
-// CLIENTE SES
-// ===============================
+// =====================================
+// CLIENTE AWS SES
+// =====================================
 
 const ses = new SESClient({
 
@@ -46,27 +35,24 @@ const ses = new SESClient({
 
   credentials: {
 
-    accessKeyId: AWS_ACCESS_KEY_ID!,
+    accessKeyId: AWS_ACCESS_KEY_ID,
 
-    secretAccessKey: AWS_SECRET_ACCESS_KEY!,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
 
   },
 
 });
 
 
-
-// ===============================
-// API HANDLER
-// ===============================
+// =====================================
+// HANDLER VERCEL
+// =====================================
 
 export default async function handler(
   req: any,
   res: any
 ) {
 
-
-  // Solo POST
 
   if (req.method !== "POST") {
 
@@ -85,25 +71,30 @@ export default async function handler(
   try {
 
 
-    // Debug Vercel
+    // =================================
+    // DEBUG SEGURO
+    // =================================
 
-    console.log({
-
+    console.log("AWS CHECK", {
       region: AWS_REGION,
 
-      accessKey:
-        AWS_ACCESS_KEY_ID?.substring(0, 5),
+      accessKeyStart:
+        AWS_ACCESS_KEY_ID?.substring(0, 4),
+
+      accessKeyLength:
+        AWS_ACCESS_KEY_ID?.length,
+
+      secretLength:
+        AWS_SECRET_ACCESS_KEY?.length,
 
       sender:
-        AWS_SES_SENDER_EMAIL
-
+        AWS_SES_SENDER_EMAIL,
     });
-
 
 
     const {
       email,
-      tasks
+      tasks = []
     } = req.body;
 
 
@@ -122,16 +113,14 @@ export default async function handler(
 
 
 
-    const taskList = (tasks || [])
+    const taskList = tasks
 
       .map(
         (task: any) =>
-
           `- ${task.title} ${task.completed
             ? "(Completada)"
             : "(Pendiente)"
           }`
-
       )
 
       .join("\n");
@@ -141,6 +130,7 @@ export default async function handler(
 
 
     const command = new SendEmailCommand({
+
 
       Source: AWS_SES_SENDER_EMAIL,
 
@@ -168,6 +158,7 @@ export default async function handler(
         },
 
 
+
         Body: {
 
 
@@ -189,9 +180,7 @@ Gestor Estratégico`
 
           }
 
-
         }
-
 
       }
 
@@ -213,13 +202,15 @@ Gestor Estratégico`
 
 
 
-
     return res.status(200).json({
 
       success: true,
 
       message:
-        "Correo enviado correctamente"
+        "Correo enviado correctamente",
+
+      messageId:
+        result.MessageId
 
     });
 
@@ -228,7 +219,6 @@ Gestor Estratégico`
 
 
   } catch (error: any) {
-
 
 
     console.error(
@@ -243,12 +233,12 @@ Gestor Estratégico`
       success: false,
 
       message:
-        error.message || "Error enviando correo"
+        error.message ||
+        "Error enviando correo"
 
     });
 
 
   }
-
 
 }
