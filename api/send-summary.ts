@@ -3,11 +3,11 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 console.log("AWS DEBUG", {
   region: process.env.AWS_REGION,
+  accessKey: process.env.AWS_ACCESS_KEY_ID?.slice(0, 4),
   accessKeyLength: process.env.AWS_ACCESS_KEY_ID?.length,
   secretLength: process.env.AWS_SECRET_ACCESS_KEY?.length,
   sender: process.env.AWS_SES_SENDER_EMAIL,
 });
-
 // ===============================
 // VARIABLES DE ENTORNO
 // ===============================
