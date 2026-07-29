@@ -113,22 +113,14 @@ Saludos.
 
 
 
-  } catch (error) {
+  } catch (error: any) {
 
-
-    console.error(
-      "Error AWS SES:",
-      error
-    );
-
+    console.error("ERROR AWS SES:", error);
 
     return res.status(500).json({
-
-      message:
-        "Error enviando correo",
-
+      message: error.message,
+      error: error,
     });
-
 
   }
 
