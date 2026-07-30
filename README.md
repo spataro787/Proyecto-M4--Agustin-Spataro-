@@ -136,7 +136,7 @@ npm test
 
 Proyecto desplegado en Vercel.
 
-**Deploy:**https://proyecto-m4-agustin-spataro-rwdm-3hw5pnnfr-agustin-s-projects26.vercel.app
+**Deploy:**https://proyecto-m4-agustin-spataro-rwdm.vercel.app/
 
 ---
 
