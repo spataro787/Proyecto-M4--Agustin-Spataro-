@@ -259,21 +259,24 @@ export const Tasks: React.FC = () => {
 
 
 
-
   const handleSendSummary = async () => {
 
+    if (!user?.email) {
 
-    if (!user) return;
+      setEmailStatus(
+        '❌ Usuario sin email configurado'
+      );
 
+      return;
+
+    }
 
 
     try {
 
-
       setSendingEmail(true);
 
       setEmailStatus('');
-
 
 
       const response = await fetch(
@@ -298,25 +301,47 @@ export const Tasks: React.FC = () => {
 
           }),
 
-
         }
 
       );
 
 
 
-      const data = await response.json();
+      const text = await response.text();
+
+
+
+      console.log(
+        "RESPUESTA API:",
+        response.status,
+        text
+      );
+
+
+
+      let data;
+
+
+      try {
+
+        data = JSON.parse(text);
+
+      } catch {
+
+        throw new Error(
+          "La API no devolvió JSON válido"
+        );
+
+      }
 
 
 
       if (!response.ok) {
 
-
         throw new Error(
           data.message ||
-          'Error enviando resumen'
+          "Error enviando resumen"
         );
-
 
       }
 
@@ -328,16 +353,18 @@ export const Tasks: React.FC = () => {
 
 
 
-    } catch (error) {
+    } catch (error: any) {
 
 
-      console.error(error);
+      console.error(
+        "ERROR ENVIANDO RESUMEN:",
+        error
+      );
 
 
       setEmailStatus(
-        '❌ Error enviando resumen'
+        `❌ ${error.message}`
       );
-
 
 
     } finally {
@@ -347,7 +374,6 @@ export const Tasks: React.FC = () => {
 
 
     }
-
 
   };
 
